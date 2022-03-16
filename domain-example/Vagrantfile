@@ -1,0 +1,46 @@
+Vagrant.configure("2") do |config|
+
+  # Prefer libvirt over other providers
+  config.vm.provider "libvirt"
+
+  # Main target: RHEL-based distributions
+  config.vm.box = "generic/rocky8"
+  
+  config.vm.provider :libvirt do |libvirt|
+
+    libvirt.memory = 2048
+    libvirt.cpus = 1
+    libvirt.nested = true
+    libvirt.disk_driver :cache => 'none'
+  end
+
+  # NAS
+  config.vm.define "rocky-nas" do |config|
+    config.vm.hostname = "BUSINESS-NAS"
+    config.vm.provider "libvirt" do |libvirt|
+      libvirt.title = "Example NAS"
+      libvirt.description = "Example of an simulated NAS connected to the network"
+      # --------------------------------
+      # Disks settings to simulate for NAS
+      $diskCount = 4
+      $sizeInGigabytes = 2
+      # --------------------------------
+      (1..$diskCount).each {
+        libvirt.storage :file, :size => "#{$sizeInGigabytes}G"
+      }
+    end
+  end
+
+  # Active Directory Root Domain Controller
+  config.vm.define "rocky-ad-dc" do |config|
+    config.vm.hostname = "a3com"
+  end
+
+  # Windows Guest
+  config.vm.define "win10-guest" do |config|
+    config.vm.hostname = "BUSINESS-WKS-0001"
+    config.vm.box = "peru/windows-10-enterprise-x64-eval"
+    config.vm.box_version = "20220302.01"
+  end 
+
+end

@@ -1,0 +1,56 @@
+# Number of nodes to spawn alongside the manager.
+$nodes = 3
+# Enables/disables provisioning of an ansible playbook
+$provisioning = false
+
+$nodeNames = []
+
+
+Vagrant.configure("2") do |config|
+  # Prefer libvirt over other providers
+  config.vm.provider "libvirt"
+  # Select a distro
+  #config.vm.box = "generic/rocky8"
+  config.vm.box = "generic/ubuntu2004"
+  config.vm.provider :libvirt do |libvirt|
+    libvirt.memory = 2048
+    libvirt.cpus = 1
+    libvirt.nested = true
+    libvirt.storage :file, :size => '15G'
+    libvirt.disk_driver :cache => 'none'
+    libvirt.storage_pool_name = "default"
+    libvirt.graphics_type = "none"
+    libvirt.usb_controller :model => "qemu-xhci"
+  end
+
+  # Manager
+  config.vm.define "k8s-manager" do |config|
+    config.vm.hostname = "k8s-manager"
+    config.vm.provider :libvirt do |libvirt|
+      libvirt.title = "K8s Manager"
+      libvirt.description = "K8s Manager of the vagrant kubernetes test cluster"
+    end
+  end
+  
+  # Nodes
+  (1..$nodes).each do | num |
+    $nodeNames << "k8s-node-#{num}"
+    config.vm.define $nodeNames.last do |config|
+      config.vm.hostname = "k8s-node-#{num}"
+      config.vm.provider :libvirt do |libvirt|
+        libvirt.title = "K8s Node"
+        libvirt.description = "K8s Node of the vagrant kubernetes test cluster"
+      end
+    end
+  end
+
+  if $provisioning
+    config.vm.provision "ansible" do |ansible|
+      ansible.playbook = "playbook.yml"
+      ansible.groups = {
+        "manager" => ["k8s-manager"],
+        "nodes" => $nodeNames,
+      }
+    end
+  end
+end
