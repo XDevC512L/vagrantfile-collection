@@ -1,0 +1,34 @@
+Vagrant.configure("2") do |config|
+  # Select a distro
+  $box = "generic/ubuntu2004"
+  # Prefer libvirt over other providers
+  config.vm.provider "libvirt"
+  config.vm.box = $box
+  #config.vm.box = "generic/ubuntu2104"
+  config.vm.provider :libvirt do |libvirt|
+    libvirt.memory = 2048
+    libvirt.cpus = 3
+    libvirt.nested = true
+    #libvirt.storage :file, :size => "15G"
+    #libvirt.disk_driver :cache => "none"
+    #libvirt.storage_pool_name = "default"
+    #libvirt.graphics_type = "none"
+    #libvirt.usb_controller :model => "qemu-xhci"
+  end
+
+  # Manager
+  config.vm.define "test-machine" do |config|
+    config.vm.hostname = "test-machine"
+    config.vm.provider :libvirt do |libvirt|
+      libvirt.title = "Test Machine"
+      libvirt.description = "A generic test machine"
+    end
+    if $box.include? "ubuntu"
+      config.vm.provision "net",
+      type: "shell",
+      path: "scripts/fix-generic-ubuntu-dns.sh",
+      privileged: true,
+      run: "always"
+    end
+  end
+end
